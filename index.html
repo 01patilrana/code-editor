@@ -473,7 +473,7 @@ int main() {
       {regex: /\d+/, token: "number"}
     ],
     comment: [
-      {regex: /.?\\//, token: "comment", next: "start"},
+      {regex: /.*?\*\//, token: "comment", next: "start"},
       {regex: /.*/, token: "comment"}
     ],
     meta: {lineComment: "//"}
@@ -494,7 +494,7 @@ int main() {
       {regex: /\d+/, token: "number"}
     ],
     comment: [
-      {regex: /.?\\//, token: "comment", next: "start"},
+      {regex: /.*?\*\//, token: "comment", next: "start"},
       {regex: /.*/, token: "comment"}
     ],
     meta: {lineComment: "//"}
@@ -513,7 +513,7 @@ int main() {
 
   Object.keys(editorConfigs).forEach(key => {
     const config = editorConfigs[key];
-    const textarea = document.getElementById(${key}-editor);
+    const textarea = document.getElementById(`${key}-editor`);
     editors[key] = CodeMirror.fromTextArea(textarea, {
       mode: config.mode,
       lineNumbers: true,

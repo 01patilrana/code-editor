@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>BugFree Code Editor</title>
+<title>BugFreeCode Editor</title>
 
 <!-- CodeMirror CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
@@ -22,6 +22,7 @@
     flex-direction: column;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #333;
+    overflow-y: auto; /* Ensure page is scrollable */
   }
   header {
     background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 100%);
@@ -43,7 +44,12 @@
     width: 32px;
     height: 32px;
   }
-  #theme-selector {
+  #controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+  #controls select {
     font-size: 0.9rem;
     padding: 0.2rem;
     background: rgba(255,255,255,0.2);
@@ -51,6 +57,8 @@
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 4px;
   }
+
+
   main {
     flex: 1;
     display: flex;
@@ -197,7 +205,7 @@
     background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
     color: white;
   }
-  .theme-light #preview-panel, .theme-light #console-panel {
+  .theme-light #preview-panel, #theme-light #console-panel {
     background: rgba(255,255,255,0.95);
     border: 1px solid #ccc;
   }
@@ -286,17 +294,91 @@
     height: calc(100% - 20px);
   }
 
-  /* Responsive */
-  @media (max-width: 900px) {
-    #editors {
-      flex-direction: column;
-      min-height: auto;
-    }
-    #output-console {
-      flex-direction: column;
-      min-height: auto;
-    }
+  /* DSA Sidebar */
+  #dsa-sidebar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 300px;
+    height: 100%;
+    background: rgba(255,255,255,0.95);
+    border-left: 1px solid #ccc;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+    z-index: 100;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
   }
+  #dsa-sidebar.open {
+    transform: translateX(0);
+  }
+  #dsa-sidebar-content {
+    padding: 1rem;
+  }
+  .dsa-difficulty {
+    margin-bottom: 1rem;
+  }
+  .dsa-difficulty h3 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+    font-size: 1.1rem;
+  }
+  .dsa-problem {
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .dsa-problem:hover {
+    background: #e9ecef;
+  }
+  .dsa-problem h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #007bff;
+  }
+
+  /* DSA Modal */
+  #dsa-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+  }
+  #dsa-modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    max-width: 600px;
+    width: 90%;
+    max-height: 80%;
+    overflow-y: auto;
+  }
+  #dsa-modal h2 {
+    margin-top: 0;
+  }
+  #dsa-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+
+
+
+
 </style>
 </head>
 <body>
@@ -310,11 +392,19 @@
       <circle cx="35" cy="40" r="4" fill="#000"/>
       <circle cx="65" cy="40" r="4" fill="#000"/>
       <path d="M 30 60 Q 50 70 70 60" stroke="#000" stroke-width="3" fill="none"/>
-      <text x="50" y="85" text-anchor="middle" fill="#fff" font-size="12" font-family="Arial" font-weight="bold">BugFree</text>
+      <text x="50" y="85" text-anchor="middle" fill="#fff" font-size="12" font-family="Arial" font-weight="bold">BugFreeCode</text>
     </svg>
-    BugFree Code Editor
+    BugFreeCode Editor
   </div>
-  <div id="theme-selectors">
+  <div id="controls">
+    <button id="dsa-toggle" title="Toggle DSA Problems Sidebar">DSA Problems</button>
+    <select id="framework-selector">
+      <option value="">Select Framework</option>
+      <option value="react">React (JS)</option>
+      <option value="flask">Flask (Python)</option>
+      <option value="django">Django (Python)</option>
+      <option value="nodejs">Node.js (JS)</option>
+    </select>
     <select id="ui-theme-selector">
       <option value="light">Light</option>
       <option value="dark">Dark</option>
@@ -328,6 +418,13 @@
     </select>
   </div>
 </header>
+
+<!-- DSA Sidebar -->
+<div id="dsa-sidebar" style="display: none;">
+  <div id="dsa-sidebar-content">
+    <!-- Populated by JS -->
+  </div>
+</div>
 
 <main>
   <section id="editors">
@@ -371,7 +468,7 @@ h1 {
         <option value="typescript">TypeScript</option>
         <option value="coffeescript">CoffeeScript</option>
       </select></h2>
-      <textarea id="js-editor">console.log('Hello from BugFree!');
+      <textarea id="js-editor">console.log('Hello from SmartCode!');
 
 function greet(name) {
   return 'Hello, ' + name + '!';
@@ -391,28 +488,6 @@ def add(a, b):
 result = add(5, 3)
 print(f"5 + 3 = {result}")</textarea>
     </div>
-    <div class="editor-panel">
-      <h2>Java <select class="lang-select" data-editor="java">
-        <option value="text/x-java">Java</option>
-      </select></h2>
-      <textarea id="java-editor">public class HelloWorld {
-    public static void main(String[] args) {
-        System.out.println("Hello, World!");
-    }
-}</textarea>
-    </div>
-    <div class="editor-panel">
-      <h2>C++ <select class="lang-select" data-editor="cpp">
-        <option value="text/x-c++src">C++</option>
-        <option value="text/x-csrc">C</option>
-      </select></h2>
-      <textarea id="cpp-editor">#include <iostream>
-
-int main() {
-    std::cout << "Hello, World!" << std::endl;
-    return 0;
-}</textarea>
-    </div>
   </section>
 
   <section id="output-console">
@@ -427,11 +502,26 @@ int main() {
   </section>
 </main>
 
+<!-- DSA Modal -->
+<div id="dsa-modal" style="display: none;">
+  <div id="dsa-modal-content">
+    <button id="dsa-close">&times;</button>
+    <h2 id="dsa-modal-title"></h2>
+    <p id="dsa-modal-description"></p>
+    <h3>Examples</h3>
+    <pre id="dsa-modal-examples"></pre>
+    <h3>Solution</h3>
+    <pre id="dsa-modal-solution"></pre>
+  </div>
+</div>
+
 <div id="buttons">
-  <button id="run-btn" title="Run the code (for JS only)">Run Code</button>
+  <button id="run-btn" title="Run the code">Run Code</button>
   <button id="download-btn" title="Download your code as an HTML file">Download Code</button>
   <button id="clear-btn" title="Clear all editors and console">Clear Code</button>
 </div>
+
+
 
 <!-- CodeMirror JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
@@ -459,6 +549,12 @@ int main() {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.css" />
+
+<!-- Pyodide for Python execution -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+
+<!-- DSA Problems Data -->
+<script src="dsa_problems.js"></script>
 
 <script>
   // Define modes for TypeScript and SCSS (simple modes)
@@ -505,10 +601,8 @@ int main() {
   const editorConfigs = {
     html: {mode: 'text/html', default: '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <title>My Page</title>\n</head>\n<body>\n  <h1>Hello, World!</h1>\n  <p>This is a sample HTML snippet.</p>\n</body>\n</html>'},
     css: {mode: 'css', default: 'body {\n  font-family: Arial, sans-serif;\n  background-color: #f0f0f0;\n  color: #333;\n}\n\nh1 {\n  color: #007bff;\n}'},
-    js: {mode: 'javascript', default: 'console.log(\'Hello from BugFree!\');\n\nfunction greet(name) {\n  return \'Hello, \' + name + \'!\';\n}\n\nalert(greet(\'User\'));'},
-    python: {mode: 'python', default: 'print("Hello, World!")\n\ndef add(a, b):\n    return a + b\n\nresult = add(5, 3)\nprint(f"5 + 3 = {result}")'},
-    java: {mode: 'text/x-java', default: 'public class HelloWorld {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}'},
-    cpp: {mode: 'text/x-c++src', default: '#include <iostream>\n\nint main() {\n    std::cout << "Hello, World!" << std::endl;\n    return 0;\n}'}
+    js: {mode: 'javascript', default: 'console.log(\'Hello from BugFreeCode!\');\n\nfunction greet(name) {\n  return \'Hello, \' + name + \'!\';\n}\n\nalert(greet(\'User\'));'},
+    python: {mode: 'python', default: 'print("Hello, World!")\n\ndef add(a, b):\n    return a + b\n\nresult = add(5, 3)\nprint(f"5 + 3 = {result}")'}
   };
 
   Object.keys(editorConfigs).forEach(key => {
@@ -568,17 +662,17 @@ int main() {
   const runBtn = document.getElementById('run-btn');
   const themeSelector = document.getElementById('theme-selector');
   const uiThemeSelector = document.getElementById('ui-theme-selector');
+  const frameworkSelector = document.getElementById('framework-selector');
+
 
   // LocalStorage keys
   const LS_KEYS = {
-    html: 'bugfree_html',
-    css: 'bugfree_css',
-    js: 'bugfree_js',
-    python: 'bugfree_python',
-    java: 'bugfree_java',
-    cpp: 'bugfree_cpp',
-    ui_theme: 'bugfree_ui_theme',
-    editor_theme: 'bugfree_editor_theme'
+    html: 'bugfreecode_html',
+    css: 'bugfreecode_css',
+    js: 'bugfreecode_js',
+    python: 'bugfreecode_python',
+    ui_theme: 'bugfreecode_ui_theme',
+    editor_theme: 'bugfreecode_editor_theme'
   };
 
   // Load saved code from localStorage or default starter code
@@ -603,6 +697,7 @@ int main() {
 
   // Append message to console output
   function appendConsoleMessage(msg, type = 'log') {
+  let lastNonZeroFoundAt = 0;
     const span = document.createElement('span');
     span.textContent = msg + '\n';
     const isDark = document.body.classList.contains('theme-dark') || document.body.classList.contains('theme-black');
@@ -754,14 +849,53 @@ ${html}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'bugfree-code.html';
+    a.download = 'bugfreecode-code.html';
     a.click();
-    URL.revokeObjectURL(url);
+    URL.createObjectURL(url);
   });
 
-  // Run code (for JS)
-  runBtn.addEventListener('click', () => {
+  // Run code (for JS and Python)
+  runBtn.addEventListener('click', async () => {
+    clearConsole();
+    const jsCode = editors.js.getValue();
+    const pythonCode = editors.python.getValue();
+
+    // Run JS in iframe
     updatePreview();
+
+    // Run Python with Pyodide
+    if (pythonCode.trim()) {
+      try {
+        if (!window.pyodide) {
+          appendConsoleMessage('Loading Pyodide...', 'log');
+          window.pyodide = await loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+          });
+          appendConsoleMessage('Pyodide loaded.', 'log');
+        }
+        // Capture stdout for print statements
+        await window.pyodide.runPythonAsync(`
+import sys
+from io import StringIO
+old_stdout = sys.stdout
+sys.stdout = captured_output = StringIO()
+        `);
+        const result = await window.pyodide.runPythonAsync(pythonCode);
+        const captured = await window.pyodide.runPythonAsync(`captured_output.getvalue()`);
+        await window.pyodide.runPythonAsync(`sys.stdout = old_stdout`);
+        if (captured) {
+          const lines = captured.trim().split('\n');
+          lines.forEach(line => {
+            if (line) appendConsoleMessage(line, 'log');
+          });
+        }
+        if (result !== undefined && result !== null) {
+          appendConsoleMessage(String(result), 'log');
+        }
+      } catch (e) {
+        appendConsoleMessage('Python Error: ' + e.message, 'error');
+      }
+    }
   });
 
   // Clear code and console
@@ -776,6 +910,76 @@ ${html}
     }
   });
 
+  // Framework selector
+  frameworkSelector.addEventListener('change', (e) => {
+    const framework = e.target.value;
+    if (!framework) return;
+
+    let htmlCode = '', cssCode = '', jsCode = '', pythonCode = '';
+
+    switch (framework) {
+      case 'react':
+        jsCode = `import React from 'react';
+import ReactDOM from 'react-dom';
+
+function App() {
+  return (
+    <div>
+      <h1>Hello, React!</h1>
+      <p>This is a basic React component.</p>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));`;
+        htmlCode = '<div id="root"></div>';
+        break;
+      case 'flask':
+        pythonCode = `from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    return 'Hello, Flask!'
+
+if __name__ == '__main__':
+    app.run(debug=True)`;
+        break;
+      case 'django':
+        pythonCode = `# Django project structure would be set up separately
+# This is a sample views.py
+
+from django.http import HttpResponse
+
+def index(request):
+    return HttpResponse("Hello, Django!")`;
+        break;
+      case 'nodejs':
+        jsCode = `const http = require('http');
+
+const server = http.createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end('Hello, Node.js!');
+});
+
+server.listen(3000, () => {
+  console.log('Server running at http://localhost:3000/');
+});`;
+        break;
+    }
+
+    editors.html.setValue(htmlCode);
+    editors.css.setValue(cssCode);
+    editors.js.setValue(jsCode);
+    editors.python.setValue(pythonCode);
+    saveCode();
+    updatePreview();
+  });
+
+
+
   // Initial load
   loadCode();
   loadUITheme();
@@ -785,7 +989,69 @@ ${html}
   window.addEventListener('resize', () => {
     Object.values(editors).forEach(editor => editor.refresh());
   });
+
+
+
+  // DSA Sidebar Toggle
+  const dsaToggle = document.getElementById('dsa-toggle');
+  const dsaSidebar = document.getElementById('dsa-sidebar');
+  const dsaSidebarContent = document.getElementById('dsa-sidebar-content');
+
+  dsaToggle.addEventListener('click', () => {
+    if (dsaSidebar.style.display === 'none' || dsaSidebar.style.display === '') {
+      populateDSASidebar();
+      dsaSidebar.style.display = 'block';
+      setTimeout(() => dsaSidebar.classList.add('open'), 10);
+    } else {
+      dsaSidebar.classList.remove('open');
+      setTimeout(() => dsaSidebar.style.display = 'none', 300);
+    }
+  });
+
+  function populateDSASidebar() {
+    dsaSidebarContent.innerHTML = '';
+    Object.keys(dsaProblems).forEach(difficulty => {
+      const difficultyDiv = document.createElement('div');
+      difficultyDiv.className = 'dsa-difficulty';
+      difficultyDiv.innerHTML = `<h3>${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}</h3>`;
+      dsaProblems[difficulty].forEach(problem => {
+        const problemDiv = document.createElement('div');
+        problemDiv.className = 'dsa-problem';
+        problemDiv.innerHTML = `<h4>${problem.title}</h4>`;
+        problemDiv.addEventListener('click', () => openDSAModal(problem));
+        difficultyDiv.appendChild(problemDiv);
+      });
+      dsaSidebarContent.appendChild(difficultyDiv);
+    });
+  }
+
+  // DSA Modal
+  const dsaModal = document.getElementById('dsa-modal');
+  const dsaModalTitle = document.getElementById('dsa-modal-title');
+  const dsaModalDescription = document.getElementById('dsa-modal-description');
+  const dsaModalExamples = document.getElementById('dsa-modal-examples');
+  const dsaModalSolution = document.getElementById('dsa-modal-solution');
+  const dsaClose = document.getElementById('dsa-close');
+
+  function openDSAModal(problem) {
+    dsaModalTitle.textContent = problem.title;
+    dsaModalDescription.textContent = problem.description;
+    dsaModalExamples.textContent = problem.examples;
+    dsaModalSolution.textContent = problem.solution;
+    dsaModal.style.display = 'flex';
+  }
+
+  dsaClose.addEventListener('click', () => {
+    dsaModal.style.display = 'none';
+  });
+
+  dsaModal.addEventListener('click', (e) => {
+    if (e.target === dsaModal) {
+      dsaModal.style.display = 'none';
+    }
+  });
 </script>
 
 </body>
+</html>
 </html>
